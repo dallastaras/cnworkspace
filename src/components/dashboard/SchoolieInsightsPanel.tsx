@@ -37,20 +37,10 @@ export const SchoolieInsightsPanel: React.FC<SchoolieInsightsPanelProps> = ({
         return 'today';
       case 'week':
         return 'this week';
-      case 'last-week':
-        return 'last week';
       case 'month':
         return 'this month';
-      case 'last-month':
-        return 'last month';
       case 'year':
         return 'this academic year';
-      case 'prior-year':
-        return 'last academic year';
-      case 'all-years':
-        return 'all time';
-      case 'custom':
-        return 'this period';
       default:
         return 'this period';
     }
@@ -94,13 +84,13 @@ export const SchoolieInsightsPanel: React.FC<SchoolieInsightsPanelProps> = ({
     const percentageDiff = ((value - kpi.benchmark) / kpi.benchmark) * 100;
     
     switch (kpi.name) {
-      case 'Lunch':
-      case 'Breakfast':
-      case 'Snack':
+      case 'Participation Rate':
         return `This affects approximately ${Math.abs(Math.round(percentageDiff * 10))} students per day`;
-      case 'Waste':
+      case 'Cost per Meal':
+        return `This represents about ${formatKPIValue(Math.abs(percentageDiff * 0.01 * value), '$')} per meal in potential savings`;
+      case 'Food Waste':
         return `This equates to roughly ${Math.abs(Math.round(percentageDiff * 5))} servings per day`;
-      case 'Revenue':
+      case 'Revenue Per Meal':
         return `This impacts daily revenue by approximately ${formatKPIValue(Math.abs(percentageDiff * 0.01 * value * 100), '$')}`;
       default:
         return null;
@@ -144,26 +134,16 @@ export const SchoolieInsightsPanel: React.FC<SchoolieInsightsPanelProps> = ({
         
         // Determine contributing factor
         let factor = '';
-        switch (kpi.name) {
-          case 'Lunch':
-          case 'Breakfast':
-          case 'Snack':
-            factor = 'menu variety and student preferences';
-            break;
-          case 'Waste':
-            factor = 'portion control and production planning';
-            break;
-          case 'Revenue':
-            factor = 'pricing strategy and à la carte sales';
-            break;
-          case 'MEQs':
-            factor = 'production efficiency and planning';
-            break;
-          case 'Eco Dis':
-            factor = 'community outreach and application processing';
-            break;
-          default:
-            factor = 'operational processes';
+        if (kpi.name === 'Participation Rate') {
+          factor = 'menu variety and student preferences';
+        } else if (kpi.name === 'Cost per Meal') {
+          factor = 'procurement and production efficiency';
+        } else if (kpi.name === 'Food Waste') {
+          factor = 'portion control and production planning';
+        } else if (kpi.name === 'Revenue Per Meal') {
+          factor = 'pricing strategy and à la carte sales';
+        } else {
+          factor = 'operational processes';
         }
 
         analysis.improvements.push({

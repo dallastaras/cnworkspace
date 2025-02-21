@@ -28,8 +28,41 @@ export const EnrollmentDetails: React.FC<EnrollmentDetailsProps> = ({
 }) => {
   const darkMode = useStore((state) => state.darkMode);
 
-  const calculatePercentage = (count: number) => {
-    return totalEnrollment > 0 ? ((count / totalEnrollment) * 100).toFixed(1) : '0.0';
+  const calculatePercentage = (count: number, total: number = totalEnrollment) => {
+    return total > 0 ? ((count / total) * 100).toFixed(1) : '0.0';
+  };
+
+  // Deduplicate and validate school breakdown data
+  const uniqueSchools = new Map<string, SchoolEnrollment>();
+  schoolBreakdown.forEach(school => {
+    if (!uniqueSchools.has(school.schoolName)) {
+      // Ensure counts add up to total enrollment for each school
+      const validatedSchool = {
+        ...school,
+        // Ensure paid count is calculated as the remainder
+        paidCount: school.totalEnrollment - (school.freeCount + school.reducedCount)
+      };
+      uniqueSchools.set(school.schoolName, validatedSchool);
+    }
+  });
+
+  // Calculate district totals from school breakdown if in district view
+  const districtTotals = isDistrictView ? Array.from(uniqueSchools.values()).reduce(
+    (acc, school) => ({
+      totalEnrollment: acc.totalEnrollment + school.totalEnrollment,
+      freeCount: acc.freeCount + school.freeCount,
+      reducedCount: acc.reducedCount + school.reducedCount,
+      paidCount: acc.paidCount + school.paidCount
+    }),
+    { totalEnrollment: 0, freeCount: 0, reducedCount: 0, paidCount: 0 }
+  ) : null;
+
+  // Use district totals if available, otherwise use props
+  const displayTotals = districtTotals || {
+    totalEnrollment,
+    freeCount,
+    reducedCount,
+    paidCount
   };
 
   const MetricCard: React.FC<{
@@ -49,7 +82,7 @@ export const EnrollmentDetails: React.FC<EnrollmentDetailsProps> = ({
               {label}
             </p>
             <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-              {calculatePercentage(count)}% of enrollment
+              {calculatePercentage(count, displayTotals.totalEnrollment)}% of enrollment
             </p>
           </div>
         </div>
@@ -70,19 +103,19 @@ export const EnrollmentDetails: React.FC<EnrollmentDetailsProps> = ({
         <div className="grid gap-3">
           <MetricCard
             label="Free Eligible"
-            count={freeCount}
+            count={displayTotals.freeCount}
             icon={UserCheck}
             color={darkMode ? 'bg-green-900' : 'bg-green-600'}
           />
           <MetricCard
             label="Reduced Eligible"
-            count={reducedCount}
+            count={displayTotals.reducedCount}
             icon={UserMinus}
             color={darkMode ? 'bg-amber-900' : 'bg-amber-600'}
           />
           <MetricCard
             label="Paid"
-            count={paidCount}
+            count={displayTotals.paidCount}
             icon={Users}
             color={darkMode ? 'bg-blue-900' : 'bg-blue-600'}
           />
@@ -90,7 +123,7 @@ export const EnrollmentDetails: React.FC<EnrollmentDetailsProps> = ({
       </div>
 
       {/* School Breakdown - Only show in district view */}
-      {isDistrictView && schoolBreakdown.length > 0 && (
+      {isDistrictView && uniqueSchools.size > 0 && (
         <div className="space-y-3">
           <h3 className={`text-sm font-medium ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>
             School Breakdown
@@ -128,7 +161,7 @@ export const EnrollmentDetails: React.FC<EnrollmentDetailsProps> = ({
                   </tr>
                 </thead>
                 <tbody className={`divide-y ${darkMode ? 'divide-gray-600' : 'divide-gray-200'}`}>
-                  {schoolBreakdown.map((school) => (
+                  {Array.from(uniqueSchools.values()).map((school) => (
                     <tr key={school.schoolName}>
                       <td className={`px-4 py-3 text-sm ${
                         darkMode ? 'text-gray-200' : 'text-gray-900'
@@ -149,25 +182,16 @@ export const EnrollmentDetails: React.FC<EnrollmentDetailsProps> = ({
                         darkMode ? 'text-gray-200' : 'text-gray-900'
                       }`}>
                         {school.freeCount.toLocaleString()}
-                        <span className={`ml-1 text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                          ({((school.freeCount / school.totalEnrollment) * 100).toFixed(1)}%)
-                        </span>
                       </td>
                       <td className={`px-4 py-3 text-sm text-right ${
                         darkMode ? 'text-gray-200' : 'text-gray-900'
                       }`}>
                         {school.reducedCount.toLocaleString()}
-                        <span className={`ml-1 text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                          ({((school.reducedCount / school.totalEnrollment) * 100).toFixed(1)}%)
-                        </span>
                       </td>
                       <td className={`px-4 py-3 text-sm text-right ${
                         darkMode ? 'text-gray-200' : 'text-gray-900'
                       }`}>
                         {school.paidCount.toLocaleString()}
-                        <span className={`ml-1 text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                          ({((school.paidCount / school.totalEnrollment) * 100).toFixed(1)}%)
-                        </span>
                       </td>
                     </tr>
                   ))}

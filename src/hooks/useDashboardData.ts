@@ -1,21 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { 
-  format, 
-  startOfDay, 
-  endOfDay, 
-  startOfWeek, 
-  endOfWeek, 
-  startOfMonth, 
-  endOfMonth,
-  getMonth, 
-  subDays, 
-  subWeeks, 
-  subMonths,
-  subYears,
-  startOfYear,
-  endOfYear,
-  eachDayOfInterval 
-} from 'date-fns';
+import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, getMonth, subDays, eachDayOfInterval } from 'date-fns';
 import { useStore } from '../store/useStore';
 import { getKPIs, getKPIValues, getSchoolDailyMetrics, getSchools } from '../lib/api';
 import { School, SchoolMetrics } from '../types';
@@ -55,7 +39,8 @@ const countServingDays = (start: Date, end: Date) => {
 };
 
 const useDashboardData = (selectedSchool: string) => {
-  const { user, selectedTimeframe, customDateRange } = useStore();
+  const { user } = useStore();
+  const selectedTimeframe = useStore((state) => state.selectedTimeframe);
   const [kpis, setKpis] = useState([]);
   const [kpiValues, setKpiValues] = useState([]);
   const [schools, setSchools] = useState<School[]>([]);
@@ -101,56 +86,20 @@ const useDashboardData = (selectedSchool: string) => {
         end = endOfWeek(now, { weekStartsOn: 1 });
         break;
       }
-      case 'last-week': {
-        const lastWeekStart = startOfWeek(subWeeks(now, 1), { weekStartsOn: 1 });
-        start = lastWeekStart;
-        end = endOfWeek(lastWeekStart, { weekStartsOn: 1 });
-        break;
-      }
       case 'month':
         start = startOfMonth(now);
         break;
-      case 'last-month': {
-        const lastMonth = subMonths(now, 1);
-        start = startOfMonth(lastMonth);
-        end = endOfMonth(lastMonth);
-        break;
-      }
       case 'year': {
         const isCurrentAcademicYear = currentMonth >= 6;
         start = new Date(isCurrentAcademicYear ? now.getFullYear() : now.getFullYear() - 1, 6, 1);
         end = new Date(isCurrentAcademicYear ? now.getFullYear() + 1 : now.getFullYear(), 5, 30);
         break;
       }
-      case 'prior-year': {
-        const isCurrentAcademicYear = currentMonth >= 6;
-        const priorYear = isCurrentAcademicYear ? now.getFullYear() - 1 : now.getFullYear() - 2;
-        start = new Date(priorYear, 6, 1); // July 1st of prior year
-        end = new Date(priorYear + 1, 5, 30); // June 30th of next year
-        break;
-      }
-      case 'all-years': {
-        // Start from July 1st, 2020 (or your system's start date)
-        start = new Date(2020, 6, 1);
-        // End at current academic year
-        const isCurrentAcademicYear = currentMonth >= 6;
-        end = new Date(isCurrentAcademicYear ? now.getFullYear() + 1 : now.getFullYear(), 5, 30);
-        break;
-      }
-      case 'custom': {
-        if (customDateRange?.start && customDateRange?.end) {
-          start = startOfDay(customDateRange.start);
-          end = endOfDay(customDateRange.end);
-        } else {
-          start = startOfDay(now);
-        }
-        break;
-      }
       default:
         start = startOfDay(now);
     }
     return { start, end };
-  }, [selectedTimeframe, customDateRange]);
+  }, [selectedTimeframe]);
 
   const isNonServingPeriod = useMemo(() => {
     if (['prior-day', 'day'].includes(selectedTimeframe)) {
@@ -662,4 +611,4 @@ const useDashboardData = (selectedSchool: string) => {
 
 export default useDashboardData;
 
-export { useDashboardData };
+export { useDashboardData }

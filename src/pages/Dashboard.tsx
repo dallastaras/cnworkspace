@@ -24,8 +24,8 @@ import {
   ParticipationRateCard,
   FoodWasteCard,
   RevenueCard,
-  BaseKPICard,
-  ProgramAccessCard
+  SnackParticipationCard,
+  BaseKPICard
 } from '../components/dashboard/kpi-cards';
 
 const Dashboard = () => {
@@ -113,60 +113,6 @@ const Dashboard = () => {
     };
   }, [refreshData, selectedSchool]);
 
-  // Calculate waste metrics for the selected school/period
-  const getWasteMetrics = () => {
-    const relevantMetrics = selectedSchool === 'district' 
-      ? schoolMetrics 
-      : schoolMetrics?.filter(m => m.school_id === selectedSchool);
-    
-    if (!relevantMetrics?.length) return null;
-
-    // Filter metrics for the selected date range
-    const dateFilteredMetrics = relevantMetrics.filter(metric => {
-      const metricDate = new Date(metric.date);
-      return metricDate >= dateRange.start && metricDate <= dateRange.end;
-    });
-
-    // Calculate totals
-    const totals = dateFilteredMetrics.reduce((acc, metric) => {
-      const planned = metric.planned_meals || 0;
-      const produced = metric.produced_meals || 0;
-      const served = metric.served_meals || 0;
-      const waste = produced - served;
-      const rts = Math.round(waste * 0.3); // 30% returned to stock
-      const carryOver = Math.round(waste * 0.2); // 20% carried over
-      const spoilage = Math.round(waste * 0.15); // 15% spoilage
-
-      return {
-        planned: acc.planned + planned,
-        produced: acc.produced + produced,
-        served: acc.served + served,
-        waste: acc.waste + (waste - rts - carryOver - spoilage),
-        rts: acc.rts + rts,
-        carryOver: acc.carryOver + carryOver,
-        spoilage: {
-          temperature: acc.spoilage.temperature + Math.round(spoilage * 0.4), // 40% temperature related
-          quality: acc.spoilage.quality + Math.round(spoilage * 0.3), // 30% quality related
-          expired: acc.spoilage.expired + Math.round(spoilage * 0.3) // 30% expired
-        }
-      };
-    }, {
-      planned: 0,
-      produced: 0,
-      served: 0,
-      waste: 0,
-      rts: 0,
-      carryOver: 0,
-      spoilage: {
-        temperature: 0,
-        quality: 0,
-        expired: 0
-      }
-    });
-
-    return totals;
-  };
-
   if (dashboardLoading) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-8rem)]">
@@ -194,9 +140,23 @@ const Dashboard = () => {
     ? schoolMetrics?.find(m => m.school_id === selectedSchool)
     : null;
 
-  // Order KPIs by display_order
+  // Order KPIs in the specified sequence
   const orderedKPIs = kpis?.sort((a, b) => {
-    return (a.display_order || 100) - (b.display_order || 100);
+    const order = [
+      'Program Access',
+      'Meals Served',
+      'Revenue',
+      'Meal Equivalents',
+      'Breakfast Participation',
+      'Lunch Participation',
+      'Snack Participation',
+      'Food Waste'
+    ];
+    const aIndex = order.indexOf(a.name);
+    const bIndex = order.indexOf(b.name);
+    if (aIndex === -1) return 1;
+    if (bIndex === -1) return -1;
+    return aIndex - bIndex;
   });
 
   return (
@@ -223,32 +183,43 @@ const Dashboard = () => {
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {orderedKPIs?.filter(kpi => !kpi.is_hidden).map((kpi) => {
+            {orderedKPIs?.filter(kpi => !kpi.is_hidden).map(kpi => {
               const value = getAggregatedKPIValue(kpi.id);
+              const expectedBenchmark = getExpectedBenchmark(kpi, schoolBenchmarks[kpi.id]);
               const props = {
                 kpi,
                 value: value || 0,
                 trend: getKPITrend(kpi.id),
                 schoolBenchmark: schoolBenchmarks[kpi.id],
-                expectedBenchmark: getExpectedBenchmark(kpi, schoolBenchmarks[kpi.id]),
+                expectedBenchmark,
                 onClick: () => setSelectedKPI(kpi)
               };
 
               switch (kpi.name) {
-                case 'Program Access':
-                  return <ProgramAccessCard key={kpi.id} {...props} />;
+                case 'Program Access': {
+                  const metrics = selectedSchool !== 'district'
+                    ? selectedSchoolMetrics
+                    : schoolMetrics?.reduce((acc, m) => ({
+                        freeReducedCount: (acc.freeReducedCount || 0) + m.free_reduced_count
+                      }), { freeReducedCount: 0 });
+                  
+                  return (
+                    <BaseKPICard 
+                      key={kpi.id} 
+                      {...props} 
+                    />
+                  );
+                }
                 case 'Meals Served':
                   return <MealsServedCard key={kpi.id} {...props} />;
-                case 'Food Waste':
-                  return <FoodWasteCard key={kpi.id} {...props} />;
-                case 'Breakfast Participation':
-                case 'Lunch Participation':
-                case 'Snack Participation':
-                  return <ParticipationRateCard key={kpi.id} {...props} />;
                 case 'Revenue':
                   return <RevenueCard key={kpi.id} {...props} />;
-                case 'Meal Equivalents':
-                  return <BaseKPICard key={kpi.id} {...props} />;
+                case 'Lunch Participation':
+                case 'Breakfast Participation':
+                case 'Snack Participation':
+                  return <ParticipationRateCard key={kpi.id} {...props} />;
+                case 'Food Waste':
+                  return <FoodWasteCard key={kpi.id} {...props} />;
                 default:
                   return <BaseKPICard key={kpi.id} {...props} />;
               }
@@ -300,7 +271,6 @@ const Dashboard = () => {
           selectedSchool={selectedSchool}
           schoolBenchmark={schoolBenchmarks[selectedKPI.id]}
           expectedBenchmark={getExpectedBenchmark(selectedKPI, schoolBenchmarks[selectedKPI.id])}
-          metrics={selectedKPI.name === 'Food Waste' ? getWasteMetrics() : undefined}
         />
       )}
     </div>

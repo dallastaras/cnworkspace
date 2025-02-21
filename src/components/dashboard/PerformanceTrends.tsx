@@ -29,46 +29,6 @@ export const PerformanceTrends: React.FC<PerformanceTrendsProps> = ({
     const kpi = kpis.find(k => k.id === selectedKPI);
     const values = kpiValues.filter(v => v.kpi_id === selectedKPI);
     
-    if (selectedTimeframe === 'all-years') {
-      // Group data by academic year (July-June)
-      const yearlyData = values.reduce((acc, value) => {
-        const valueDate = parseISO(value.date);
-        const month = valueDate.getMonth();
-        const year = valueDate.getFullYear();
-        
-        // Academic year starts in July
-        const academicYear = month >= 6 ? year : year - 1;
-        const yearKey = `${academicYear}-${(academicYear + 1).toString().slice(2)}`;
-        
-        if (!acc[yearKey]) {
-          acc[yearKey] = {
-            year: yearKey,
-            values: [],
-            date: new Date(academicYear, 6, 1) // July 1st
-          };
-        }
-        
-        acc[yearKey].values.push(value.value);
-        return acc;
-      }, {} as Record<string, any>);
-
-      // Calculate average for each year
-      return Object.values(yearlyData)
-        .map(yearData => {
-          const avgValue = yearData.values.reduce((sum: number, val: number) => sum + val, 0) / yearData.values.length;
-          return {
-            label: yearData.year,
-            date: yearData.date,
-            value: avgValue,
-            trendValue: avgValue,
-            benchmark: kpi?.benchmark,
-            goal: kpi?.goal,
-            isAboveGoal: avgValue >= (kpi?.goal || 0)
-          };
-        })
-        .sort((a, b) => a.date.getTime() - b.date.getTime());
-    }
-
     if (['day', 'prior-day'].includes(selectedTimeframe)) {
       // Get the day of the week for the current date
       const currentDay = dateRange.start;

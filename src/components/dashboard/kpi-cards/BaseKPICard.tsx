@@ -37,8 +37,6 @@ export const BaseKPICard: React.FC<BaseKPICardProps> = ({
 
   // Determine if the value is above or below benchmark
   const isAboveBenchmark = value >= expectedBenchmark;
-
-  // For KPIs where lower is better, invert the comparison
   const isPerformingWell = isLowerBetter ? !isAboveBenchmark : isAboveBenchmark;
 
   // Get performance indicator styles
@@ -89,12 +87,18 @@ export const BaseKPICard: React.FC<BaseKPICardProps> = ({
           <div className="mt-4 space-y-2">
             <div className="flex justify-between text-sm">
               <span className={darkMode ? 'text-gray-400' : 'text-gray-500'}>
-                Benchmark
+                Expected
               </span>
               <span className={`font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                 {formatValue(expectedBenchmark)}
               </span>
             </div>
+            {/*<div className="flex justify-between text-sm">
+              <span className={darkMode ? 'text-gray-400' : 'text-gray-500'}>Goal</span>
+              <span className={`font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                {formatValue(kpi.goal)}
+              </span>
+            </div>*/}
           </div>
         </div>
       </div>

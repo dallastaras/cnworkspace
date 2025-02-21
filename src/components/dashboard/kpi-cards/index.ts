@@ -5,4 +5,3 @@ export { FoodWasteCard } from './FoodWasteCard';
 export { RevenueCard } from './RevenueCard';
 export { SnackParticipationCard } from './SnackParticipationCard';
 export { BaseKPICard } from './BaseKPICard';
-export { ProgramAccessCard } from './ProgramAccessCard';

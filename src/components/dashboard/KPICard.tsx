@@ -21,33 +21,12 @@ export const KPICard: React.FC<KPICardProps> = ({
   const darkMode = useStore((state) => state.darkMode);
   const selectedTimeframe = useStore((state) => state.selectedTimeframe);
 
-  const getDisplayName = (name: string) => {
-    switch (name) {
-      case 'Program Access':
-        return 'Eco Dis';
-      case 'Meals Served':
-        return 'Meals';
-      case 'Meal Equivalents':
-        return 'MEQs';
-      case 'Breakfast Participation':
-        return 'Breakfast';
-      case 'Lunch Participation':
-        return 'Lunch';
-      case 'Snack Participation':
-        return 'Snack';
-      case 'Food Waste':
-        return 'Waste';
-      default:
-        return name;
-    }
-  };
-
   const formatValue = (val: number) => {
     if (kpi.unit === '%') return `${Math.round(val)}%`;
     if (kpi.unit === '$') return `$${val.toFixed(2)}`;
     
     // For specific KPIs that need whole numbers
-    if (['Meals', 'MEQs', 'Meals Per Labor Hour', 'Staff Training'].includes(getDisplayName(kpi.name))) {
+    if (['Meals Served', 'Meals Per Labor Hour', 'Staff Training'].includes(kpi.name)) {
       return Math.round(val).toLocaleString();
     }
     
@@ -64,7 +43,7 @@ export const KPICard: React.FC<KPICardProps> = ({
   const isAboveBenchmark = value >= expectedBenchmark;
 
   // For KPIs where lower is better, invert the comparison
-  const isLowerBetter = ['Waste', 'Cost per Meal'].includes(getDisplayName(kpi.name));
+  const isLowerBetter = ['Food Waste', 'Cost per Meal'].includes(kpi.name);
   const isPerformingWell = isLowerBetter ? !isAboveBenchmark : isAboveBenchmark;
 
   // Get performance indicator styles
@@ -88,12 +67,15 @@ export const KPICard: React.FC<KPICardProps> = ({
   const performanceStyles = getPerformanceStyles();
   const IndicatorIcon = performanceStyles.icon;
 
+  // Get the daily benchmark value for display
+  const dailyBenchmark = schoolBenchmark ?? kpi.benchmark;
+
   return (
     <div className={`${darkMode ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-sm border-t-4 ${performanceStyles.borderColor}`}>
       <div className="p-6">
         <div className="flex justify-between items-start">
           <h3 className={`text-lg font-medium ${darkMode ? 'text-white' : 'text-gray-900'}`}>
-            {getDisplayName(kpi.name)}
+            {kpi.name}
           </h3>
           <div className={`flex items-center space-x-2 ${performanceStyles.color}`}>
             <div className={`p-1 rounded-full ${performanceStyles.bgColor}`}>
@@ -108,10 +90,16 @@ export const KPICard: React.FC<KPICardProps> = ({
           <div className="mt-4 space-y-2">
             <div className="flex justify-between text-sm">
               <span className={darkMode ? 'text-gray-400' : 'text-gray-500'}>
-                Benchmark
+                {['prior-day', 'day'].includes(selectedTimeframe) ? 'Daily' : 'Expected'} Benchmark
               </span>
               <span className={`font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                 {formatValue(expectedBenchmark)}
+              </span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className={darkMode ? 'text-gray-400' : 'text-gray-500'}>Goal</span>
+              <span className={`font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                {formatValue(kpi.goal)}
               </span>
             </div>
           </div>
